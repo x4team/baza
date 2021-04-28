@@ -570,7 +570,7 @@ global:
 If you need specify host,port,auth,ssl etc 
 https://lyz-code.github.io/blue-book/devops/prometheus/alertmanager/
 
-## Ready config representation
+### Ready config representation
 
 ```
 global:
