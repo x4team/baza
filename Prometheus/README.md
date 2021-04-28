@@ -1,4 +1,5 @@
-# Install Prometheus, node exporter, alertmanager, blackbox
+# Install Prometheus, node exporter, tinyproxy, blackbox, alertmanager, alertmanager-sns-forwarder, prometheus_bot(telegram)
+
 
 ### Add users and group
 
@@ -242,6 +243,13 @@ ufw allow 43210/tcp
 sudo systemctl restart tinyproxy
 ```
 
+### If need - add crontab job for restart tinyproxy every day
+
+```
+# Restart tinyproxy in 23:50
+50 23 * * * systemctl restart tinyproxy
+```
+
 ### Test
 
 ```
@@ -399,4 +407,187 @@ modules:
       - expect: "^:[^ ]+ 001"
   icmp:
     prober: icmp
+```
+
+### Check config
+
+```
+blackbox_exporter --config.check
+```
+
+### Restart blackbox
+
+```
+sudo systemctl restart blackbox.service
+```
+
+### Binding the Blackbox Exporter Module in Prometheus
+
+```
+scrape_configs:
+
+...
+
+    - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [https_external_2xx]   # USE BACKBOX module with TINYPROXY
+    static_configs:
+      - targets:
+        - https://google.com    # Target to probe with https.
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:9115  # The blackbox exporter's real hostname:port
+```
+
+### Restart prometheus
+
+```
+sudo systemctl restart prometheus
+```
+
+### Check config 
+
+```
+https://localhost:1234/config
+```
+
+### To verify it, head over to the /graph endpoint, and issue the following PromQL request.
+
+```
+probe_success{instance="https://127.0.0.1:1234", job="blackbox"}
+```
+
+
+## Install Alertmanager
+
+### Create user
+
+```
+sudo useradd --no-create-home --shell /bin/false alertmanager
+```
+
+### Creating Alert Rules
+
+```
+sudo touch /etc/prometheus/alert.rules.yml
+sudo chown prometheus:prometheus /etc/prometheus/alert.rules.yml
+```
+
+### Add the rule_file to prometheus config
+
+```
+sudo nano /etc/prometheus/prometheus.yml
+
+
+global:
+  scrape_interval: 15s
+
+rule_files:
+  - alert.rules.yml
+
+scrape_configs:
+...
+```
+
+In order to make the alert rule, you’ll use Blackbox Exporter’s probe_success metric which returns 1 if the endpoint is up and 0 if it isn’t.
+
+```
+sudo nano /etc/prometheus/alert.rules.yml
+```
+
+```
+groups:
+- name: alert.rules
+  rules:
+  - alert: EndpointDown
+    expr: probe_success == 0
+    for: 10s
+    labels:
+      severity: "critical"
+    annotations:
+      summary: "Endpoint {{ $labels.instance }} down"
+```
+
+### Check alert.rule.yml
+
+```
+sudo promtool check rules /etc/prometheus/alert.rules.yml
+```
+
+### Restart Prometheus
+
+```
+sudo systemctl restart prometheus
+sudo systemctl status prometheus
+```
+
+### Downloading Alertmanager
+
+```
+cd /tmp
+curl -LO https://github.com/prometheus/alertmanager/releases/download/v0.21.0/alertmanager-0.21.0.linux-amd64.tar.gz
+tar xvf alertmanager-0.21.0.linux-amd64.tar.gz
+```
+
+```
+sudo mv alertmanager-0.21.0.linux-amd64/alertmanager /usr/local/bin
+sudo mv alertmanager-0.21.0.linux-amd64/amtool /usr/local/bin
+```
+
+### Fix rules
+
+```
+sudo chown alertmanager:alertmanager /usr/local/bin/alertmanager
+sudo chown alertmanager:alertmanager /usr/local/bin/amtool
+```
+
+### Remove files
+
+```
+rm -rf alertmanager-0.21.0.linux-amd64 alertmanager-0.21.0.linux-amd64.tar.gz
+```
+
+### Configuring Alertmanager To Send Alerts Over Email
+
+```
+sudo mkdir /etc/alertmanager
+sudo chown alertmanager:alertmanager /etc/alertmanager
+sudo nano /etc/alertmanager/alertmanager.yml
+```
+
+```
+global:
+  smtp_smarthost: 'localhost:25'
+  smtp_from: 'alertmanager@your_domain'
+  smtp_require_tls: false
+```
+
+If you need specify host,port,auth,ssl etc 
+https://lyz-code.github.io/blue-book/devops/prometheus/alertmanager/
+
+
+```
+global:
+  resolve_timeout: 1m
+  smtp_from: 'hellomail@mail.ru'
+  smtp_smarthost: smtp.mail.ru:465
+  smtp_auth_username: 'hellomail@mail.ru'
+  smtp_auth_password: 'sajhdassabjdtqYE9SQHl4'
+  smtp_require_tls: true
+route:
+  group_by: ['instance', 'severity']
+  group_wait: 30s
+  group_interval: 30s
+  repeat_interval: 30s
+  receiver: team-1
+
+receivers:
+  - name: 'team-1'
+    email_configs:
+      - to: 'x4team@gmail.com'
 ```
