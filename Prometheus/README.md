@@ -1,20 +1,20 @@
 # Install Prometheus, node exporter, alertmanager, blackbox
 
-## Add users and group
+### Add users and group
 
 ```
 sudo groupadd --system prometheus
 sudo useradd -s /sbin/nologin --system -g prometheus prometheus
 ```
 
-## Create configuration and data directories
+### Create configuration and data directories
 
 ```
 sudo mkdir /var/lib/prometheus
 for i in rules rules.d files_sd; do sudo mkdir -p /etc/prometheus/${i}; done
 ```
 
-## Download and Install Prometheus
+### Download and Install Prometheus
 
 ```
 sudo apt-get -y install wget
@@ -26,14 +26,14 @@ curl -s https://api.github.com/repos/prometheus/prometheus/releases/latest \
   | wget -qi -
 ```
 
-## Extract the file
+### Extract the file
 
 ```
 tar xvf prometheus*.tar.gz
 cd prometheus*/
 ```
 
-## Move the prometheus binary files to /usr/local/bin/
+### Move the prometheus binary files to /usr/local/bin/
 
 ```
 sudo mv prometheus promtool /usr/local/bin/
@@ -43,7 +43,7 @@ cd ~/
 rm -rf /tmp/prometheus
 ```
 
-## Create/Edit a Prometheus configuration file
+### Create/Edit a Prometheus configuration file
 
 ```
 sudo vim /etc/prometheus/prometheus.yml
@@ -81,7 +81,7 @@ scrape_configs:
     - targets: ['localhost:9090']
 ```
 
-## Create a Prometheus systemd Service unit file
+### Create a Prometheus systemd Service unit file
 
 ```
 sudo tee /etc/systemd/system/prometheus.service<<EOF
@@ -113,7 +113,7 @@ WantedBy=multi-user.target
 EOF
 ```
 
-## Change directory permissions
+### Change directory permissions
 
 ```
 for i in rules rules.d files_sd; do sudo chown -R prometheus:prometheus /etc/prometheus/${i}; done
@@ -121,7 +121,7 @@ for i in rules rules.d files_sd; do sudo chmod -R 775 /etc/prometheus/${i}; done
 sudo chown -R prometheus:prometheus /var/lib/prometheus/
 ```
 
-## Reload systemd daemon and start the service
+### Reload systemd daemon and start the service
 
 ```
 sudo systemctl daemon-reload
@@ -134,6 +134,7 @@ systemctl status prometheus
 ```
 
 Access Prometheus web interface on URL http://[ip_hostname]:9090
+
 
 ##  Install node_exporter 
 
@@ -201,4 +202,201 @@ sudo vim /etc/prometheus.yml
 
 ```
 sudo systemctl restart prometheus
+```
+
+
+## Install TinyProxy
+
+```
+apt-get install tinyproxy -y
+```
+
+Create user
+
+```
+sudo useradd -rs /bin/false tinyproxy
+```
+
+```
+nano /etc/tinyproxy/tinyproxy.conf
+```
+
+
+```
+User tinyproxy
+Group tinyproxy
+Port 43210
+#Allow 0.0.0.0/0      # Allow for all - NOT SECURELY
+Allow 44.55.31.22    # Allow for specific ip address - SECURELY   
+```
+
+### Open port
+
+```
+ufw allow 43210/tcp
+```
+
+### Restart proxy
+
+```
+sudo systemctl restart tinyproxy
+```
+
+### Test
+
+```
+curl --proxy "http://127.0.0.1:43210" "http://httpbin.org/ip" -k
+```
+
+
+
+## Install Blackbox module
+
+```
+cd tmp && wget https://github.com/prometheus/blackbox_exporter/releases/download/v0.18.0/blackbox_exporter-0.18.0.linux-amd64.tar.gz
+```
+
+```
+tar xvzf blackbox_exporter-0.18.0.linux-amd64.tar.gz
+```
+
+```
+cd blackbox_exporter-0.18.0.linux-amd64 && sudo mv blackbox_exporter /usr/local/bin/
+```
+
+### Create configuration folders for your blackbox exporter
+
+```
+sudo mkdir -p /etc/blackbox
+sudo mv blackbox.yml /etc/blackbox
+```
+
+### Create a user account for the Blackbox exporter
+
+```
+sudo useradd -rs /bin/false blackbox
+sudo chown blackbox:blackbox /usr/local/bin/blackbox_exporter
+sudo chown -R blackbox:blackbox /etc/blackbox/*
+```
+
+### Create the Blackbox exporter service
+
+```
+cd /lib/systemd/system
+sudo touch blackbox.service
+sudo nano blackbox.service
+```
+
+```
+[Unit]
+Description=Blackbox Exporter Service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=blackbox
+Group=blackbox
+ExecStart=/usr/local/bin/blackbox_exporter \
+  --config.file=/etc/blackbox/blackbox.yml \
+  --web.listen-address=":9115"
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Daemon reload and service start
+
+```
+sudo systemctl daemon-reload
+sudo systemctl enable blackbox.service
+sudo systemctl start blackbox.service
+```
+
+Test metrics
+
+```
+curl http://localhost:9115/metrics
+```
+
+### Binding the Blackbox exporter with Prometheus
+
+```
+sudo nano /etc/prometheus/prometheus.yml
+
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+    - targets: ['localhost:9090', 'localhost:9115']
+```
+
+```
+sudo systemctl restart prometheus
+```
+
+### Creating a Blackbox module AND module https_external_2xx with TinyProxy - proxy_url http://127.0.0.1:43210
+
+```
+modules:
+  http_2xx:
+    prober: http
+  https_2xx:
+    prober: http
+    timeout: 5s
+    http:
+      method: GET
+      fail_if_ssl: false
+      fail_if_not_ssl: true
+      valid_http_versions: ["HTTP/1.1", "HTTP/2"]
+      valid_status_codes: [200]
+      no_follow_redirects: false
+      preferred_ip_protocol: "ip4"
+  https_external_2xx:
+    prober: http
+    timeout: 5s
+    http:
+      method: GET
+      fail_if_ssl: false
+      fail_if_not_ssl: true
+      valid_http_versions: ["HTTP/1.0", "HTTP/1.1", "HTTP/2"]
+      valid_status_codes: [200]
+      no_follow_redirects: false
+      proxy_url: "http://127.0.0.1:43210"
+      preferred_ip_protocol: "ip4"
+  http_post_2xx:
+    prober: http
+    http:
+      method: POST
+  tcp_connect:
+    prober: tcp
+  pop3s_banner:
+    prober: tcp
+    tcp:
+      query_response:
+      - expect: "^+OK"
+      tls: true
+      tls_config:
+        insecure_skip_verify: false
+  ssh_banner:
+    prober: tcp
+    tcp:
+      query_response:
+      - expect: "^SSH-2.0-"
+  irc_banner:
+    prober: tcp
+    tcp:
+      query_response:
+      - send: "NICK prober"
+      - send: "USER prober prober prober :prober"
+      - expect: "PING :([^ ]+)"
+        send: "PONG ${1}"
+      - expect: "^:[^ ]+ 001"
+  icmp:
+    prober: icmp
 ```
