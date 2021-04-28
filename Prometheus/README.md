@@ -570,6 +570,7 @@ global:
 If you need specify host,port,auth,ssl etc 
 https://lyz-code.github.io/blue-book/devops/prometheus/alertmanager/
 
+## Ready config representation
 
 ```
 global:
@@ -589,5 +590,64 @@ route:
 receivers:
   - name: 'team-1'
     email_configs:
-      - to: 'x4team@gmail.com'
+      - to: 'tosend@mail.ru'
 ```
+
+### Running Alertmanager
+
+```
+sudo nano /etc/systemd/system/alertmanager.service
+```
+
+```
+[Unit]
+Description=Alertmanager
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=alertmanager
+Group=alertmanager
+Type=simple
+WorkingDirectory=/etc/alertmanager/
+ExecStart=/usr/local/bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml --web.external-url http://127.0.0.1:9093
+
+[Install]
+WantedBy=multi-user.target
+```
+
+``
+sudo systemctl daemon-reload
+sudo systemctl enable alertmanager.service
+``
+
+### Open the Prometheus configuration file:
+
+```
+...
+rule_files:
+  - alert.rules.yml
+
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      - localhost:9093
+...
+```
+
+### Service restart/start/status
+
+```
+sudo systemctl restart prometheus
+sudo systemctl start alertmanager.service
+sudo systemctl status prometheus
+sudo systemctl status alertmanager.service
+```
+
+### Open Port
+
+```
+sudo ufw allow 9093/tcp
+```
+
