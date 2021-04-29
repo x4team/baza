@@ -651,3 +651,56 @@ sudo systemctl status alertmanager.service
 sudo ufw allow 9093/tcp
 ```
 
+
+
+## INSTALL ALERTMANAGER-SNS-FORWARDER
+
+First install docker https://docs.docker.com/engine/install/ubuntu/
+
+```
+docker run -it -d --name alertmanager --env "AWS_REGION=eu-west-1" --env "SNS_FORWARDER_DEBUG=true" --env "SNS_FORWARDER_ARN_PREFIX=arn:aws:sns:eu-west-1:xxxxxxxx:" -p 9087:9087 datareply/alertmanager-sns-forwarder:0.2
+```
+
+### Alertmanager configuration file:
+
+```
+- name: 'sns-forwarder'
+  webhook_configs:
+  - send_resolved: True
+    url: http://127.0.0.1:9087/alert/SNStopicNAME
+
+```
+
+### Ready alertmanager config file 
+
+```
+global:
+  resolve_timeout: 1m
+  smtp_from: 'hellomail@mail.ru'
+  smtp_smarthost: smtp.mail.ru:465
+  smtp_auth_username: 'hellomail@mail.ru'
+  smtp_auth_password: 'sajhdassabjdtqYE9SQHl4'
+  smtp_require_tls: true
+route:
+  group_by: ['instance', 'severity']
+  group_wait: 30s
+  group_interval: 30s
+  repeat_interval: 30s
+  receiver: team-1      #SET THE TEAM
+
+receivers:
+  - name: 'team-1'
+    webhook_configs:
+    - send_resolved: true
+      url: http://127.0.0.1:9087/alert/ProxyAlertName
+  - name: 'team-2'
+    email_configs:
+      - to: 'tosend@mail.ru'
+```
+
+### Restart service alertmanager
+
+```
+sudo systemctl start alertmanager.service
+```
+
