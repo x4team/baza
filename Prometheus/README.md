@@ -353,6 +353,10 @@ sudo systemctl restart prometheus
 ### Creating a Blackbox module AND module https_external_2xx with TinyProxy - proxy_url http://127.0.0.1:43210
 
 ```
+nano /etc/blackbox/blackbox.yml
+```
+
+```
 modules:
   http_2xx:
     prober: http
