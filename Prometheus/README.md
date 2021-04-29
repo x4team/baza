@@ -430,6 +430,10 @@ sudo systemctl restart blackbox.service
 ### Binding the Blackbox Exporter Module in Prometheus
 
 ```
+nano /etc/prometheus/prometheus.yml
+```
+
+```
 scrape_configs:
 
 ...
