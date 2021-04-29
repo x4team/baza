@@ -1,6 +1,8 @@
 # Install Prometheus, node exporter, tinyproxy, blackbox, alertmanager, alertmanager-sns-forwarder, prometheus_bot(telegram)
 
 
+## INSTALL PROMETHEUS
+
 ### Add users and group
 
 ```
@@ -137,7 +139,7 @@ systemctl status prometheus
 Access Prometheus web interface on URL http://[ip_hostname]:9090
 
 
-##  Install node_exporter 
+##  INSTALL node_exporter
 
 ```
 curl -s https://api.github.com/repos/prometheus/node_exporter/releases/latest \
@@ -206,7 +208,7 @@ sudo systemctl restart prometheus
 ```
 
 
-## Install TinyProxy
+## INSTALL TINYPROXY
 
 ```
 apt-get install tinyproxy -y
@@ -258,7 +260,7 @@ curl --proxy "http://127.0.0.1:43210" "http://httpbin.org/ip" -k
 
 
 
-## Install Blackbox module
+## INSTALL BLACKBOX MODULE
 
 ```
 cd tmp && wget https://github.com/prometheus/blackbox_exporter/releases/download/v0.18.0/blackbox_exporter-0.18.0.linux-amd64.tar.gz
@@ -463,7 +465,7 @@ probe_success{instance="https://127.0.0.1:1234", job="blackbox"}
 ```
 
 
-## Install Alertmanager
+## INSTALL ALERTMANAGER
 
 ### Create user
 
@@ -655,7 +657,8 @@ sudo ufw allow 9093/tcp
 
 ## INSTALL ALERTMANAGER-SNS-FORWARDER
 
-First install docker https://docs.docker.com/engine/install/ubuntu/
+0) First install docker https://docs.docker.com/engine/install/ubuntu/
+1) Setup Amazon SNS and create arn:aws:sns:eu-west-1:xxxxxxxxxx:TopicName and Subscriptions: your_email@gmail.com
 
 ```
 docker run -it -d --name alertmanager --env "AWS_REGION=eu-west-1" --env "SNS_FORWARDER_DEBUG=true" --env "SNS_FORWARDER_ARN_PREFIX=arn:aws:sns:eu-west-1:xxxxxxxx:" -p 9087:9087 datareply/alertmanager-sns-forwarder:0.2
@@ -704,3 +707,84 @@ receivers:
 sudo systemctl start alertmanager.service
 ```
 
+
+
+## INSTALL PROMETHEUS_BOT TELEGRAM
+
+### Set chatid ENV in docker run
+
+0) Create Telegram bot with BotFather, it will return your bot token
+
+```
+sudo docker run -it -d -p 9088:9087 --name prometheus_bot --env TELEGRAM_CHATID=12735163 ekeih/prometheus_bot:latest
+```
+
+## Create config file 
+
+```
+sudo nano config.yml
+```
+
+```
+telegram_token: "token goes here"
+# ONLY IF YOU USING DATA FORMATTING FUNCTION, NOTE for developer: important or test fail
+#time_outdata: "02/01/2006 15:04:05" 
+#template_path: "template.tmpl" # ONLY IF YOU USING TEMPLATE
+#time_zone: "Europe/Rome" # ONLY IF YOU USING TEMPLATE
+#split_msg_byte: 4000
+send_only: true # use bot only to send messages.
+```
+
+### Copy config.yml to container and restart 
+
+```
+sudo docker cp config.yml prometheus_bot:/config.yml
+sudo docker restart prometheus_bot
+```
+
+### Alert manager configuration file:
+
+```
+- name: 'admins'
+  webhook_configs:
+  - send_resolved: True
+    url: http://127.0.0.1:9087/alert/-chat_id
+```
+
+### Ready alertmanager config file
+
+```
+global:
+  resolve_timeout: 1m
+  smtp_from: 'hellomail@mail.ru'
+  smtp_smarthost: smtp.mail.ru:465
+  smtp_auth_username: 'hellomail@mail.ru'
+  smtp_auth_password: 'sajhdassabjdtqYE9SQHl4'
+  smtp_require_tls: true
+route:
+  group_by: ['instance', 'severity']
+  group_wait: 30s
+  group_interval: 30s
+  repeat_interval: 30s
+  receiver: team-3      #SET THE TEAM, or ['team-1', 'team-2', 'team-3']
+
+receivers:
+  - name: 'team-1'
+    webhook_configs:
+    - send_resolved: true
+      url: http://127.0.0.1:9087/alert/ProxyAlertName
+  - name: 'team-2'
+    email_configs:
+      - to: 'tosend@mail.ru'
+  - name: 'team-3'
+    webhook_configs:
+    - send_resolved: True
+      url: http://127.0.0.1:9088/alert/-chat_id
+```
+
+
+### Restart service alertmanager
+
+```
+sudo systemctl start alertmanager.service
+```
