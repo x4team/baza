@@ -788,3 +788,40 @@ receivers:
 ```
 sudo systemctl start alertmanager.service
 ```
+
+
+
+## Sources:
+
+blackbox exporter
+https://github.com/prometheus/blackbox_exporter
+https://github.com/prometheus/blackbox_exporter/releases
+https://lyz-code.github.io/blue-book/devops/prometheus/blackbox_exporter/#https-endpoint-through-an-http-proxy
+Install blackbox https://devconnected.com/how-to-install-and-configure-blackbox-exporter-for-prometheus/
+Additional:
+https://github.com/prometheus/blackbox_exporter/issues/503
+
+Install Prometheus and node_exporter
+https://computingforgeeks.com/how-to-install-prometheus-and-node-exporter-on-debian/
+https://prometheus.io/docs/guides/multi-target-exporter/
+
+TinyProxy Install And Setup
+https://techlist.top/install-tinyproxy-on-ubuntu-server/
+
+AlertManager
+https://www.digitalocean.com/community/tutorials/how-to-use-alertmanager-and-blackbox-exporter-to-monitor-your-web-server-on-ubuntu-16-04
+https://medium.com/techno101/how-to-send-a-mail-using-prometheus-alertmanager-7e880a3676db
+https://lyz-code.github.io/blue-book/devops/prometheus/alertmanager/
+
+https://alibabacloud.com/blog/using-prometheus-and-blackbox-exporter-to-monitor-services-on-alibaba-cloud_596232
+
+Amazon SNS
+https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/US_SetupSNS.html
+
+local resource:
+AlertManager
+http://127.0.0.1:9093/#/alerts
+Prometheus Alerts
+http://127.0.0.1:9090/alerts
+Prometheus Targets
+http://127.0.0.1:9090/targets
