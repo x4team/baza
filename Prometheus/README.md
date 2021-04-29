@@ -634,6 +634,10 @@ sudo systemctl enable alertmanager.service
 ### Open the Prometheus configuration file:
 
 ```
+sudo nano /etc/prometheus/prometheus.yml
+```
+
+```
 ...
 rule_files:
   - alert.rules.yml
