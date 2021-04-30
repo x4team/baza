@@ -1,0 +1,68 @@
+---
+- block:
+  - name: Add blackbox user
+    user:
+      name: blackbox
+      shell: /bin/nologin
+      create_home: no
+      system: yes
+
+  - name: Create blackbox directory
+    file:
+      path: /opt/blackbox_exporter
+      state: directory
+      owner: blackbox
+      group: blackbox
+      mode: 0755
+
+  - name: Download alertmanager
+    get_url:
+      url: "{{ download_link }}"
+      dest: /tmp/blackbox_exporter.tar.gz
+      checksum: "{{ download_checksum }}"
+      mode: 0440
+    register: result
+    until: result is succeeded
+    retries: 5
+    delay: 3
+
+  - name: Extract blackbox_exporter
+    unarchive:
+      src: /tmp/blackbox_exporter.tar.gz
+      dest: /opt/blackbox_exporter
+      owner: blackbox
+      group: blackbox
+      mode: 0755
+      remote_src: yes
+      extra_opts: [--strip-components=1]
+    notify: restart blackbox_exporter
+
+  - name: Copy blackbox_exporter configuration file
+    template:
+      src: blackbox.yml.j2
+      dest: /opt/blackbox_exporter/blackbox.yml
+      owner: blackbox
+      group: blackbox
+      mode: 0644
+    notify: restart blackbox_exporter
+
+  - name: Copy blackbox_exporter unit file
+    copy:
+      src: files/blackbox_exporter.service
+      dest: /etc/systemd/system
+      owner: root
+      group: root
+      mode: 0644
+    notify: reload systemd
+
+  - name: Enable and start blackbox_exporter service
+    systemd:
+      name: blackbox_exporter
+      enabled: yes
+      state: started
+      
+  when: 
+    - ansible_facts['architecture'] == 'x86_64'
+    - ansible_facts['distribution'] == 'Ubuntu'
+  become: yes
+...
