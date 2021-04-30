@@ -1,0 +1,8 @@
+modules:
+  main_proxy:
+    prober: http
+    http:
+      valid_http_versions: ["HTTP/1.0", "HTTP/1.1", "HTTP/2.0"]
+      method: GET
+      proxy_url: "http://{{ main_proxy_first_addr }}:{{ main_proxy_port }}"
+      preferred_ip_protocol: "ip4"
