@@ -1,0 +1,72 @@
+---
+- block:
+  - name: Add sonarqube user
+    user:
+      name: sonarqube
+      shell: /bin/nologin
+      create_home: no
+      system: yes
+
+  - name: Install developer software
+    apt:
+      name: 
+        - unzip
+        - default-jre
+      state: latest
+      update_cache: yes
+      cache_valid_time: 86400
+
+  - name: Download sonarqube
+    get_url:
+      url: "{{ download_link }}"
+      dest: /tmp/sonarqube.zip
+      checksum: "{{ download_checksum }}"
+      mode: 0440
+    register: result
+    until: result is succeeded
+    retries: 5
+    delay: 3
+
+  - name: Extract sonarqube
+    unarchive:
+      src: /tmp/sonarqube.zip
+      dest: /opt/
+      owner: sonarqube
+      group: sonarqube
+      mode: 0777
+      remote_src: yes
+      extra_opts: [--strip-components=1]
+    notify: restart sonarqube
+
+  - name: Move sonarqube-8.8.0.42792 as sonarqube
+    command: mv /opt/sonarqube-8.8.0.42792 /opt/sonarqube
+    
+  - name: Copy sonarqube configuration file
+    copy:
+      src: sonar.properties
+      dest: /opt/sonarqube/conf
+      owner: sonarqube
+      group: sonarqube
+      mode: 0644
+    notify: restart sonarqube
+
+  - name: Copy sonarqube unit file
+    copy:
+      src: files/sonarqube.service
+      dest: /etc/systemd/system
+      owner: root
+      group: root
+      mode: 0644
+    notify: reload systemd
+
+  - name: Enable and start sonarqube service
+    systemd:
+      name: sonarqube
+      enabled: yes
+      state: started
+      
+  when: 
+    - ansible_facts['architecture'] == 'x86_64'
+    - ansible_facts['distribution'] == 'Ubuntu'
+  become: yes
+...
