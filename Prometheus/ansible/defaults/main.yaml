@@ -1,0 +1,11 @@
+---
+download_link: https://github.com/prometheus/prometheus/releases/download/v2.26.0/prometheus-2.26.0.linux-amd64.tar.gz
+download_checksum: sha256:8dd6786c338dc62728e8891c13b62eda66c7f28a01398869f2b3712895b441b9
+nginx_conf_file: /etc/nginx/sites-available/monitoring
+nginx_server_name: monitoring.site.name
+root_role_arn: arn:aws:iam::345437437437:role/Monitoring
+prod_role_arn: arn:aws:iam::346437347345:role/Monitoring
+prometheus_port: 9090
+alertmanager_port: 9093
+node_exporter_port: 9100
+...
