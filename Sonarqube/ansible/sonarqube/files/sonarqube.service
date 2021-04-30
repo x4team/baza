@@ -1,0 +1,16 @@
+[Unit]
+Description=SonarQube service
+Documentation=https://docs.sonarqube.org/latest/setup/install-server/
+After=network.target
+
+[Service]
+Type=simple
+User=sonarqube
+Group=sonarqube
+WorkingDirectory=/opt/sonarqube
+ExecStart=/opt/sonarqube/bin/linux-x86-64/sonar.sh start
+ExecStop=/opt/sonarqube/bin/linux-x86-64/sonar.sh stop
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
