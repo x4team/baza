@@ -1,0 +1,21 @@
+---
+- name: Force systemd to reread configs
+  systemd:
+    daemon_reload: yes
+  listen: "reload systemd"
+  become: yes
+
+- name: Restart prometheus service
+  become: yes
+  systemd:
+    name: prometheus
+    state: restarted
+  listen: "restart prometheus"
+
+- name: Reload nginx service
+  systemd:
+    name: nginx
+    state: reloaded
+  listen: "reload nginx"
+  become: yes
+...
