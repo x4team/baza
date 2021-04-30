@@ -1,4 +1,4 @@
-# Install SonarQube on Ubuntu 18.04
+# Install SonarQube on Ubuntu
 
 ## Step 1 - Perform a system update
 
