@@ -1,0 +1,14 @@
+---
+- name: Force systemd to reread configs
+  systemd:
+    daemon_reload: yes
+  listen: "reload systemd"
+  become: yes
+
+- name: Restart sonarqube service
+  systemd:
+    name: sonarqube
+    state: restarted
+  listen: "restart sonarqube"
+  become: yes
+...
