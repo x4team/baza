@@ -1,0 +1,11 @@
+---
+- hosts: 
+    - monitoring
+  vars_files:
+    - vars/monitoring-development.yaml
+    - vars/monitoring-production.yaml
+  roles:
+    - prometheus
+    - alertmanager
+    - blackbox_exporter
+...
