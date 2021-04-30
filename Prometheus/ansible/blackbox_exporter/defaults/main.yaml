@@ -1,0 +1,4 @@
+---
+download_link: https://github.com/prometheus/blackbox_exporter/releases/download/v0.18.0/blackbox_exporter-0.18.0.linux-amd64.tar.gz
+download_checksum: sha256:a87f9530e31e2b20d03a6d941f6f051c57ee724f24b38f2615b8580ca63966dc
+...
