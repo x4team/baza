@@ -1,0 +1,16 @@
+[Unit]
+Description=Prometheus - systems and service monitoring system
+Documentation=https://github.com/prometheus/prometheus
+After=network.target
+
+[Service]
+Type=simple
+User=prometheus
+Group=prometheus
+WorkingDirectory=/opt/prometheus
+ExecStart=/opt/prometheus/prometheus --config.file /opt/prometheus/prometheus.yml --web.external-url=http://{{ nginx_server_name }}/prometheus/
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
