@@ -1,0 +1,70 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - path_prefix: /alertmanager
+      static_configs:
+        - targets:
+            - localhost:{{ alertmanager_port }}
+
+rule_files:
+  - /opt/prometheus/node_exporter.yaml
+  - /opt/prometheus/service.yaml
+  - /opt/prometheus/blackbox_exporter.yaml
+
+scrape_configs:
+  - job_name: prometheus
+    metrics_path: /prometheus/metrics
+    static_configs:
+      - targets:
+          - localhost:{{ prometheus_port }}
+
+  - job_name: service-dev
+    metrics_path: /prometheus
+    ec2_sd_configs:
+      - region: eu-west-1
+        port: 3030
+        filters:
+          - name: tag:Environment
+            values:
+            - development
+          - name: tag:Name
+            values:
+            - compliance-service
+    relabel_configs:
+      - source_labels: [__meta_ec2_tag_Name]
+        target_label: instance
+
+  - job_name: service-prod
+    metrics_path: /prometheus
+    ec2_sd_configs:
+      - region: eu-west-1
+        role_arn: {{ prod_role_arn }}
+        port: 3030
+        filters:
+          - name: tag:Environment
+            values:
+            - production
+          - name: tag:Name
+            values:
+            - compliance-service
+    relabel_configs:
+      - source_labels: [__meta_ec2_tag_Name]
+        target_label: instance
+
+  - job_name: 'blackbox_exporter'
+    metrics_path: /probe
+    params:
+      module: [main_proxy]
+    static_configs:
+      - targets:
+        - http://google.com
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9115
