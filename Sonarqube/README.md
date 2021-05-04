@@ -23,7 +23,7 @@ sudo systemctl enable postgresql
 ### Switch to the postgres user.
 
 ```
-sudo passwd postgres
+sudo -i -u postgres
 ```
 
 ### Create a new user by typing:
